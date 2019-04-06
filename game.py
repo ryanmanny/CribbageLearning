@@ -138,7 +138,7 @@ class CribbageGame:
             player._game = self  # Used so AI can query things it needs to
 
         self._dealer_iter = itertools.cycle(self._players)
-        for i in random.randint(0, len(self._players) - 1):
+        for i in range(random.randint(0, len(self._players) - 1)):
             next(self._dealer_iter)  # Randomly initializes dealer cycle
         self._dealer = next(self._dealer_iter)
 
