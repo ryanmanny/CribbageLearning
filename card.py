@@ -6,8 +6,6 @@ from collections import deque
 
 import random
 
-PEGGING_LIMIT = 31
-
 
 class CribbageCard:
     RANKS = [
@@ -111,7 +109,7 @@ class CribbageHand:
     def count(self, cut_card=None):
         raise NotImplementedError
 
-    def __getitem__(self, index):
+    def __getitem__(self, index) -> CribbageCard:
         return self.cards[index - 1]
 
     def __iter__(self):
@@ -122,6 +120,8 @@ class CribbageHand:
 
 
 class CribbagePeggingPile:
+    PEGGING_LIMIT = 31
+
     def __init__(self):
         self.cards = deque()
 
@@ -142,4 +142,7 @@ class CribbagePeggingPile:
         return sum(card.value for card in self.cards)
 
     def min_required(self):
-        return PEGGING_LIMIT - self.count()
+        return self.PEGGING_LIMIT - self.count()
+
+    def __str__(self):
+        print(f"{list(self.cards)!s}")

@@ -25,7 +25,7 @@ class CribbagePlayer:
         num_to_throw = len(self._hand) - HAND_SIZE
 
         while True:
-            self.print_hand()
+            print(f"{self.hand!s}")
             indexes = input(
                 f"Enter the indexes ({num_to_throw}) you want to throw away: "
             ).split()
@@ -50,10 +50,30 @@ class CribbagePlayer:
             break
 
     def put_down_pegging_card(self):
-        raise NotImplementedError
+        pegging_pile = self._game.pegging_pile
 
-    def print_hand(self):
-        print(f"{self.hand!s}")
+        while True:
+            print(f"Pegging pile count: {pegging_pile.count()}")
+            print(f"PILE = {pegging_pile!s}")
+            print(f"{self.pegging_hand!s}")
+
+            try:
+                index = int(input(
+                    f"Enter the index of the card you want to put down: "
+                ))
+            except ValueError:
+                print("Invalid")
+                continue
+
+            card = self.hand[index]
+
+            if pegging_pile.count() + card.value > pegging_pile.PEGGING_LIMIT:
+                print(f"Pegging pile cannot exceed {pegging_pile.PEGGING_LIMIT}")
+                continue
+            else:
+                self.hand.pop(card)
+                self.points += pegging_pile.add(card)
+            break
 
     @property
     def minimum_card(self):
@@ -134,6 +154,10 @@ class CribbageGame:
     @property
     def crib(self) -> CribbageHand:
         return self._crib
+
+    @property
+    def pegging_pile(self) -> CribbagePeggingPile:
+        return self._pegging_pile
 
     def _change_dealer(self):
         self._dealer = next(self._dealer_iter)
