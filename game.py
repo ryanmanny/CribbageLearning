@@ -49,8 +49,14 @@ class CribbagePlayer:
                 self._game.crib.add(card)
             break
 
-    def put_down_pegging_card(self):
+    def put_down_pegging_card(self) -> bool:
+        """
+        Returns True if player has to say GO
+        """
         pegging_pile = self._game.pegging_pile
+
+        if pegging_pile.count() + self.minimum_card > pegging_pile.PEGGING_LIMIT:
+            return True
 
         while True:
             print(f"Pegging pile count: {pegging_pile.count()}")
@@ -74,6 +80,7 @@ class CribbagePlayer:
                 self.hand.pop(card)
                 self.points += pegging_pile.add(card)
             break
+        return False
 
     @property
     def minimum_card(self):
@@ -198,18 +205,19 @@ class CribbageGame:
         go = False
         last_player = None
 
+        print(f"empties {[player.hand.is_empty for player in self._players]}")
         while not all(player.hand.is_empty for player in self._players):
             for player in self._players:
                 if go:  # This player plays until she can't go either
                     player.points += 1  # One point for Go
                     while True:
-                        go = player.put_down_pegging_card(self._pegging_pile)
+                        go = player.put_down_pegging_card()
                         if go:
                             self._pegging_pile.reset()  # Neither player can play
                             break
                         last_player = player
                 elif not player.hand.is_empty:
-                    go = player.put_down_pegging_card(self._pegging_pile)
+                    go = player.put_down_pegging_card()
                     last_player = player
 
         last_player.points += 1  # One for last card

@@ -64,6 +64,9 @@ class CribbageCard:
             for suit in cls.SUITS
         ]
 
+    def __str__(self):
+        return f"{self.rank} of {self.suit}"
+
 
 class CribbageDeck:
     def __init__(self):
@@ -97,10 +100,10 @@ class CribbageHand:
 
     @property
     def is_empty(self):
-        return len(self.cards) > 0
+        return len(self) == 0
 
     def add(self, card):
-        self.cards.add(card)
+        self.cards.append(card)
 
     def pop(self, card):
         self.cards.remove(card)
@@ -114,6 +117,9 @@ class CribbageHand:
 
     def __iter__(self):
         return iter(self.cards)
+
+    def __len__(self):
+        return len(self.cards)
 
     def __str__(self):
         return "\n".join(f"{i}. {card}" for i, card in enumerate(self.cards, 1))
@@ -145,4 +151,4 @@ class CribbagePeggingPile:
         return self.PEGGING_LIMIT - self.count()
 
     def __str__(self):
-        print(f"{list(self.cards)!s}")
+        return f"{list(self.cards)!s}"
