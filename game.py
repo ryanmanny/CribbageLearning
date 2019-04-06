@@ -6,6 +6,7 @@ will not be very fun
 """
 
 import random
+import itertools
 
 from card import CribbageDeck, CribbageHand, CribbagePeggingPile
 
@@ -84,18 +85,33 @@ class CribbageGame:
         for player in self._players:
             player._game = self  # Used so AI can query things it needs to
 
-        self._dealer = random.choice(self._players)
+        self._dealer_iter = itertools.cycle(self._players)
+        for i in random.randint(0, len(self._players) - 1):
+            next(self._dealer_iter)  # Randomly initializes dealer cycle
+        self._dealer = next(self._dealer_iter)
+
         self._crib = CribbageHand()
 
         self._deck = CribbageDeck()
         self._pegging_pile = CribbagePeggingPile()
         self._cut_card = None
 
+    @property
+    def dealer(self):
+        return self._dealer
+
+    @property
+    def players(self):
+        return self._players
+
+    def _change_dealer(self):
+        self._dealer = next(self._dealer_iter)
+
     def win_handler(self, player):
         assert player.points > 120, ValueError("You little scumbag")
-        self.game_over(player)
+        self._game_over(player)
 
-    def game_over(self, player):
+    def _game_over(self, player):
         raise NotImplementedError
 
     def _deal(self):
@@ -108,7 +124,7 @@ class CribbageGame:
         """
         cut_card = self._deck.draw()
         if cut_card.rank == 'Jack':
-            self._dealer.points += 2
+            self.dealer.points += 2
 
     def _make_players_throw_away(self):
         """
@@ -150,7 +166,7 @@ class CribbageGame:
             player.points += player.hand.count(self._cut_card)
 
     def _count_crib(self):
-        self._dealer.points += self._crib.count(self._cut_card)
+        self.dealer.points += self._crib.count(self._cut_card)
 
     def turn(self):
         """
@@ -166,3 +182,5 @@ class CribbageGame:
 
         self._count_players_hands()
         self._count_crib()
+
+        self._change_dealer()
