@@ -95,7 +95,7 @@ class CribbageHand:
     def __init__(self, cards=None):
         if cards is None:
             cards = []
-        self.cards = set(cards)
+        self.cards = cards
 
     @property
     def is_empty(self):
@@ -111,8 +111,14 @@ class CribbageHand:
     def count(self, cut_card=None):
         raise NotImplementedError
 
+    def __getitem__(self, index):
+        return self.cards[index - 1]
+
     def __iter__(self):
         return iter(self.cards)
+
+    def __str__(self):
+        return "\n".join(f"{i}. {card}" for i, card in enumerate(self.cards, 1))
 
 
 class CribbagePeggingPile:

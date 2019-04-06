@@ -10,6 +10,8 @@ import itertools
 
 from card import CribbageDeck, CribbageHand, CribbagePeggingPile
 
+HAND_SIZE = 4
+
 
 class CribbagePlayer:
     def __init__(self):
@@ -20,7 +22,32 @@ class CribbagePlayer:
         self._points = 0
 
     def throw_away_cards(self):
-        raise NotImplementedError
+        num_to_throw = len(self._hand) - HAND_SIZE
+
+        while True:
+            self.print_hand()
+            indexes = input(
+                f"Enter the indexes ({num_to_throw}) you want to throw away: "
+            ).split()
+            if len(indexes) != num_to_throw:
+                print("Not the right number to throw away")
+                continue
+            for index in indexes:
+                try:
+                    index = int(index)
+                except ValueError:
+                    print(f"{index} cannot be converted to int")
+                    continue
+                try:
+                    card = self.hand[index]
+                except IndexError:
+                    print(f"{index} is not a valid index")
+                    continue
+
+                # Move cards to crib
+                self.hand.pop(card)
+                self._game.crib.add(card)
+            break
 
     def put_down_pegging_card(self):
         raise NotImplementedError
@@ -36,7 +63,7 @@ class CribbagePlayer:
         return min(card.value for card in self.hand)
 
     @property
-    def hand(self):
+    def hand(self) -> CribbageHand:
         return self._hand
 
     @hand.setter
@@ -49,7 +76,7 @@ class CribbagePlayer:
         self._pegging_hand = CribbageHand(new_hand)
 
     @property
-    def pegging_hand(self):
+    def pegging_hand(self) -> CribbageHand:
         """
         Set using self.hand
         """
@@ -103,6 +130,10 @@ class CribbageGame:
     @property
     def players(self):
         return self._players
+
+    @property
+    def crib(self) -> CribbageHand:
+        return self._crib
 
     def _change_dealer(self):
         self._dealer = next(self._dealer_iter)
