@@ -1,3 +1,10 @@
+"""
+You may notice a general sense of hackiness throughout the game logic.
+The intent of this project is to create a good interface to a Cribbage AI that
+could be hooked into any Cribbage game. Because of this, this cribbage game
+will not be very fun
+"""
+
 import random
 
 from card import CribbageDeck, CribbageHand, CribbagePeggingPile
@@ -17,8 +24,14 @@ class CribbagePlayer:
     def put_down_pegging_card(self):
         raise NotImplementedError
 
+    def print_hand(self):
+        print(f"{self.hand!s}")
+
     @property
     def minimum_card(self):
+        """
+        Used to check if a player must say GO
+        """
         return min(card.value for card in self.hand)
 
     @property
@@ -27,11 +40,18 @@ class CribbagePlayer:
 
     @hand.setter
     def hand(self, new_hand):
+        """
+        Sets both hand variables at the same time, since they are both
+        handled independently (this is a hack!)
+        """
         self._hand = CribbageHand(new_hand)
         self._pegging_hand = CribbageHand(new_hand)
 
     @property
     def pegging_hand(self):
+        """
+        Set using self.hand
+        """
         return self._pegging_hand
 
     @property
@@ -40,6 +60,9 @@ class CribbagePlayer:
 
     @points.setter
     def points(self, value):
+        """
+        A hacky event handler. Why does the game ask the player if he won?
+        """
         self._points = value
         if self._points > 120:
             self._game.win_handler(self)
@@ -55,10 +78,11 @@ class RoboCribbagePlayer(CribbagePlayer):
 
 class CribbageGame:
     def __init__(self, players):
-        assert len(players) == 2, NotImplementedError("Only two players allowed")
+        if len(players) != 2:
+            raise NotImplementedError("Only two players allowed")
         self._players = players
         for player in self._players:
-            player._game = self
+            player._game = self  # Used so AI can query things it needs to
 
         self._dealer = random.choice(self._players)
         self._crib = CribbageHand()
@@ -87,10 +111,16 @@ class CribbageGame:
             self._dealer.points += 2
 
     def _make_players_throw_away(self):
+        """
+        Asks players which cards to throw away
+        """
         for player in self._players:
             player.throw_away_cards()
 
     def _make_players_peg(self):
+        """
+        Performs the pegging process, asking users for input when necessary
+        """
         go = False
         last_player = None
 
@@ -112,6 +142,10 @@ class CribbageGame:
         self._pegging_pile.reset()
 
     def _count_players_hands(self):
+        """
+        Abstracts the counting away from the player, it's not very important
+        Automatically adds points in the hand to score
+        """
         for player in self._players:
             player.points += player.hand.count(self._cut_card)
 
@@ -119,6 +153,9 @@ class CribbageGame:
         self._dealer.points += self._crib.count(self._cut_card)
 
     def turn(self):
+        """
+        Does all logic necessary for a turn of Cribbage to take place
+        """
         self._deck.shuffle()
 
         self._deal()
