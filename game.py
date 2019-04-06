@@ -14,7 +14,8 @@ HAND_SIZE = 4
 
 
 class CribbagePlayer:
-    def __init__(self):
+    def __init__(self, player_num):
+        self.player_num = player_num
         self._game = None
 
         self._hand = None
@@ -29,22 +30,28 @@ class CribbagePlayer:
             indexes = input(
                 f"Enter the indexes ({num_to_throw}) you want to throw away: "
             ).split()
+
+            # Check that there are the right number of indexes
             if len(indexes) != num_to_throw:
                 print("Not the right number to throw away")
                 continue
-            for index in indexes:
-                try:
-                    index = int(index)
-                except ValueError:
-                    print(f"{index} cannot be converted to int")
-                    continue
-                try:
-                    card = self.hand[index]
-                except IndexError:
-                    print(f"{index} is not a valid index")
-                    continue
 
-                # Move cards to crib
+            # Check that indexes are actually integers
+            try:
+                indexes = [int(index) for index in indexes]
+            except ValueError as e:
+                print(f"{e.args} cannot be converted to int")
+                continue
+
+            # Check that indexes aren't out of bounds
+            try:
+                cards = [self.hand[index] for index in indexes]
+            except IndexError as e:
+                print(f"{e.args} is not a valid index")
+                continue
+
+            # Move cards to crib
+            for card in cards:
                 self.hand.pop(card)
                 self._game.crib.add(card)
             break
@@ -53,9 +60,14 @@ class CribbagePlayer:
         """
         Returns True if player has to say GO
         """
+        print(f"{self}'s turn")
+
         pegging_pile = self._game.pegging_pile
 
-        if pegging_pile.count() + self.minimum_card > pegging_pile.PEGGING_LIMIT:
+        # Check if Player has to say GO
+        if len(self.hand) == 0 or \
+                pegging_pile.count() + self.minimum_card > pegging_pile.PEGGING_LIMIT:
+            print(f"{self} says GO")
             return True
 
         while True:
@@ -80,6 +92,7 @@ class CribbagePlayer:
                 self.hand.pop(card)
                 self.points += pegging_pile.add(card)
             break
+
         return False
 
     @property
@@ -87,7 +100,11 @@ class CribbagePlayer:
         """
         Used to check if a player must say GO
         """
-        return min(card.value for card in self.hand)
+        try:
+            return min(card.value for card in self.hand)
+        except ValueError:  # Empty sequence
+            # TODO: Figure out something good to do here
+            raise
 
     @property
     def hand(self) -> CribbageHand:
@@ -121,6 +138,9 @@ class CribbagePlayer:
         self._points = value
         if self._points > 120:
             self._game.win_handler(self)
+
+    def __str__(self):
+        return f"Player {self.player_num}"
 
 
 class RoboCribbagePlayer(CribbagePlayer):
@@ -205,8 +225,15 @@ class CribbageGame:
         go = False
         last_player = None
 
+        pegging_pile = self._pegging_pile
+
         print(f"empties {[player.hand.is_empty for player in self._players]}")
         while not all(player.hand.is_empty for player in self._players):
+            if pegging_pile.count() == 31:
+                last_player.points += 2
+                pegging_pile.reset()
+                continue
+
             for player in self._players:
                 if go:  # This player plays until she can't go either
                     player.points += 1  # One point for Go
@@ -261,9 +288,13 @@ class CribbageGame:
         input("Game is over")
 
 
-if __name__ == '__main__':
+def main():
     players = [
-        CribbagePlayer(),
-        CribbagePlayer(),
+        CribbagePlayer(1),
+        CribbagePlayer(2),
     ]
     CribbageGame(players).play()
+
+
+if __name__ == '__main__':
+    main()

@@ -43,9 +43,9 @@ class CribbageCard:
         'Eight': 8,
         'Nine': 9,
         'Ten': 10,
-        'Jack': 11,
-        'Queen': 12,
-        'King': 13,
+        'Jack': 10,
+        'Queen': 10,
+        'King': 10,
     }
 
     def __init__(self, rank, suit):
@@ -135,7 +135,29 @@ class CribbagePeggingPile:
         """
         Return the number of points the top card would score
         """
-        raise NotImplementedError
+        points = 0
+
+        num_cards = len(self)
+        count = self.count()
+
+        # FIND 15 and 31 POINTS
+        if count == 15:
+            print("15 for 2")
+            points += 2
+        elif count == 31:
+            print("31 for 2")
+            points += 2
+
+        # FIND SEQUENCE POINTS
+        for i in range(3, num_cards + 1):
+            card_ranks = [
+                # TODO: Find a good way to refactor this
+                CribbageCard.RANKS.index(card.rank)
+                for card in list(self)[num_cards - i::]
+            ]
+            print(f"CARD RANKS {card_ranks}")
+
+        return points
 
     def reset(self):
         self.cards = deque()
@@ -150,5 +172,14 @@ class CribbagePeggingPile:
     def min_required(self):
         return self.PEGGING_LIMIT - self.count()
 
+    def __getitem__(self, index):
+        return self.cards[index]
+
+    def __iter__(self):
+        return iter(self.cards)
+
+    def __len__(self):
+        return len(self.cards)
+
     def __str__(self):
-        return f"{list(self.cards)!s}"
+        return f"{list(str(card) for card in self.cards)}"
