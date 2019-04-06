@@ -125,6 +125,11 @@ class RoboCribbagePlayer(CribbagePlayer):
 
 
 class CribbageGame:
+    class GameOver(StopIteration):
+        """
+        Has science gone too far?
+        """
+
     def __init__(self, players):
         if len(players) != 2:
             raise NotImplementedError("Only two players allowed")
@@ -164,10 +169,8 @@ class CribbageGame:
 
     def win_handler(self, player):
         assert player.points > 120, ValueError("You little scumbag")
-        self._game_over(player)
-
-    def _game_over(self, player):
-        raise NotImplementedError
+        print(f"{player!s} has winned")
+        raise self.GameOver
 
     def _deal(self):
         for player in self._players:
@@ -239,3 +242,20 @@ class CribbageGame:
         self._count_crib()
 
         self._change_dealer()
+
+    def play(self):
+        while True:
+            try:
+                self.turn()
+            except self.GameOver:
+                break
+
+        input("Game is over")
+
+
+if __name__ == '__main__':
+    players = [
+        CribbagePlayer(),
+        CribbagePlayer(),
+    ]
+    CribbageGame(players).play()
