@@ -113,12 +113,12 @@ class ThrowingClassifier:
             self.index_classifiers[i].fit(features, classes[i])
 
     @classmethod
-    def load(cls, pickle_file):
+    def load(cls, pickle_file=PICKLE_FILE):
         obj = cls()
         obj.index_classifiers = pickle.load(pickle_file)
         return obj
 
-    def dump(self, pickle_file):
+    def dump(self, pickle_file=PICKLE_FILE):
         pickle.dump(self.index_classifiers, pickle_file)
 
     def throw(self, is_dealer, serialized_card_array):
@@ -138,6 +138,11 @@ class ThrowingClassifier:
 
 
 def test_dataset(num_trials=1000):
+    """
+    Most recent results:
+        ACTUAL 11.002982246376813
+        RANDOM 9.354994685990336
+    """
     clf = AdaBoostClassifier(
         base_estimator=RandomForestClassifier(n_estimators=20),
         n_estimators=20,
