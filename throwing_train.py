@@ -115,11 +115,17 @@ class ThrowingClassifier:
     @classmethod
     def load(cls, pickle_file=PICKLE_FILE):
         obj = cls()
-        obj.index_classifiers = pickle.load(pickle_file)
+
+        print(f"Loading classifiers from {pickle_file}")
+        with open(pickle_file, 'rb') as fp:
+            index_classifiers = pickle.load(fp)
+
+        obj.index_classifiers = index_classifiers
         return obj
 
     def dump(self, pickle_file=PICKLE_FILE):
-        pickle.dump(self.index_classifiers, pickle_file)
+        with open(pickle_file, 'wb') as fp:
+            pickle.dump(self.index_classifiers, fp)
 
     def throw(self, is_dealer, serialized_card_array):
         features = [int(is_dealer), *serialized_card_array]
@@ -220,7 +226,7 @@ def test_dataset(num_trials=1000):
 def main():
     # gen_dataset(10000)
 
-    actual_score, random_score = test_dataset(1000)
+    actual_score, random_score = test_dataset(2000)
 
     print(f"ACTUAL {actual_score}")
     print(f"RANDOM {random_score}")
