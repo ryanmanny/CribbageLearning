@@ -291,6 +291,8 @@ class CribbageGame:
 
         pegging_pile = self._pegging_pile
 
+        round = 0
+
         while not all(player.pegging_hand.is_empty for player in self._players):
             if pegging_pile.count() == 31:
                 last_player.points += 2
@@ -298,6 +300,11 @@ class CribbageGame:
                 continue
 
             for player in self._players:
+                if round == 0 and player is self.dealer:
+                    continue  # The opponent starts
+
+                round += 1
+
                 if go:  # This player plays until she can't go either
                     player.points += 1  # One point for Go
                     while True:
