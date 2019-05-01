@@ -1,5 +1,6 @@
 import numpy as np
 
+import copy
 import os
 import random
 import csv
@@ -84,13 +85,12 @@ class RandomThrowingClassifier:
     def __init__(self):
         self.card_indexes = list(range(6))
 
-    def throw(self):
+    def throw(self, *args, **kwargs):
         return random.sample(self.card_indexes, 2)
 
 
 class ThrowingClassifier:
     def __init__(self, classifier=None):
-        import copy
         self.index_classifiers = []
 
         if classifier is not None:
@@ -128,6 +128,8 @@ class ThrowingClassifier:
             pickle.dump(self.index_classifiers, fp)
 
     def throw(self, is_dealer, serialized_card_array):
+        assert len(serialized_card_array) == 6
+
         features = [int(is_dealer), *serialized_card_array]
         scores = []
 

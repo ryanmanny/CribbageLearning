@@ -7,8 +7,10 @@ will not be very fun
 
 import random
 import itertools
+import copy
 
 from card import CribbageDeck, CribbageHand, CribbagePeggingPile
+from throwing_ai import ThrowingClassifier, RandomThrowingClassifier
 
 HAND_SIZE = 4
 
@@ -26,6 +28,7 @@ class CribbagePlayer:
         num_to_throw = len(self._hand) - HAND_SIZE
 
         while True:
+            print("***YOUR CARDS***")
             print(f"{self.hand!s}")
             indexes = input(
                 f"Enter the indexes ({num_to_throw}) you want to throw away: "
@@ -54,6 +57,7 @@ class CribbagePlayer:
             for card in cards:
                 self.hand.pop(card)
                 self._game.crib.add(card)
+                self._pegging_hand = copy.deepcopy(self.hand)
             break
 
     def put_down_pegging_card(self) -> bool:
@@ -65,14 +69,16 @@ class CribbagePlayer:
         pegging_pile = self._game.pegging_pile
 
         # Check if Player has to say GO
-        if len(self.hand) == 0 or \
+        if len(self.pegging_hand) == 0 or \
                 pegging_pile.count() + self.minimum_card > pegging_pile.PEGGING_LIMIT:
             print(f"{self} says GO")
             return True
 
         while True:
             print(f"Pegging pile count: {pegging_pile.count()}")
-            print(f"PILE = {pegging_pile!s}")
+            print(f"***PILE**")
+            print(f"{pegging_pile!s}")
+            print(f"***CARDS YOU HAVE LEFT***")
             print(f"{self.pegging_hand!s}")
 
             try:
@@ -83,13 +89,13 @@ class CribbagePlayer:
                 print("Invalid")
                 continue
 
-            card = self.hand[index]
+            card = self.pegging_hand[index]
 
             if pegging_pile.count() + card.value > pegging_pile.PEGGING_LIMIT:
                 print(f"Pegging pile cannot exceed {pegging_pile.PEGGING_LIMIT}")
                 continue
             else:
-                self.hand.pop(card)
+                self.pegging_hand.pop(card)
                 self.points += pegging_pile.add(card)
             break
 
@@ -101,7 +107,7 @@ class CribbagePlayer:
         Used to check if a player must say GO
         """
         try:
-            return min(card.value for card in self.hand)
+            return min(card.value for card in self.pegging_hand)
         except ValueError:  # Empty sequence
             # TODO: Figure out something good to do here
             raise
@@ -144,11 +150,61 @@ class CribbagePlayer:
 
 
 class RoboCribbagePlayer(CribbagePlayer):
+    def __init__(self, *args, **kwargs):
+        self.throwing_classifier = ThrowingClassifier.load()
+
+        super().__init__(*args, **kwargs)
+
     def throw_away_cards(self):
-        raise NotImplementedError
+        game = self._game
+        is_dealer = self is game.dealer
+        hand = self.hand
+
+        assert len(hand) == 6
+
+        serialized_cards = [card.serialize() for card in hand]
+
+        indexes = self.throwing_classifier.throw(is_dealer, serialized_cards)
+
+        # Check that indexes aren't out of bounds
+        try:
+            cards = [self.hand[index] for index in indexes]
+        except IndexError as e:
+            raise ValueError("The AI is broken")
+
+        # Move cards to crib
+        for card in cards:
+            hand.pop(card)
+            game.crib.add(card)
+
+        self._pegging_hand = copy.deepcopy(self.hand)
+
+        print(f"***AI PLAYER {self.player_num} HAS THROWN AWAY***")
 
     def put_down_pegging_card(self):
-        raise NotImplementedError
+        """
+        Chooses a random card to throw away
+        """
+        pegging_pile = self._game.pegging_pile
+
+        if len(self.pegging_hand) == 0 or \
+                pegging_pile.count() + self.minimum_card > pegging_pile.PEGGING_LIMIT:
+            print(f"{self} says GO")
+            return True
+
+        while True:
+            index = random.randint(0, len(self.pegging_hand) - 1)
+
+            card = self.pegging_hand[index + 1]
+
+            if pegging_pile.count() + card.value > pegging_pile.PEGGING_LIMIT:
+                continue
+            else:
+                self.pegging_hand.pop(card)
+                self.points += pegging_pile.add(card)
+            break
+
+        return False
 
 
 class CribbageGame:
@@ -191,8 +247,13 @@ class CribbageGame:
     def pegging_pile(self) -> CribbagePeggingPile:
         return self._pegging_pile
 
+    def _print_scores(self):
+        for player in self.players:
+            print(f"***{player!s} has {player.points} points***")
+
     def _change_dealer(self):
         self._dealer = next(self._dealer_iter)
+        self._crib = CribbageHand()  # Reset crib
 
     def win_handler(self, player):
         assert player.points > 120, ValueError("You little scumbag")
@@ -208,8 +269,11 @@ class CribbageGame:
         Automatically cuts, since there is no strategy worth exploring there
         """
         cut_card = self._deck.draw()
+        print(f"***CUT CARD IS {cut_card!s}***")
         if cut_card.rank == 'Jack':
             self.dealer.points += 2
+
+        self._cut_card = cut_card
 
     def _make_players_throw_away(self):
         """
@@ -227,8 +291,7 @@ class CribbageGame:
 
         pegging_pile = self._pegging_pile
 
-        print(f"empties {[player.hand.is_empty for player in self._players]}")
-        while not all(player.hand.is_empty for player in self._players):
+        while not all(player.pegging_hand.is_empty for player in self._players):
             if pegging_pile.count() == 31:
                 last_player.points += 2
                 pegging_pile.reset()
@@ -240,15 +303,17 @@ class CribbageGame:
                     while True:
                         go = player.put_down_pegging_card()
                         if go:
-                            self._pegging_pile.reset()  # Neither player can play
+                            pegging_pile.reset()  # Neither player can play
                             break
                         last_player = player
                 elif not player.hand.is_empty:
                     go = player.put_down_pegging_card()
                     last_player = player
+                else:
+                    break
 
         last_player.points += 1  # One for last card
-        self._pegging_pile.reset()
+        pegging_pile.reset()
 
     def _count_players_hands(self):
         """
@@ -256,17 +321,32 @@ class CribbageGame:
         Automatically adds points in the hand to score
         """
         for player in self._players:
-            player.points += player.hand.count(self._cut_card)
+            print(f"***{player!s} has these cards***")
+            print(f"{player.hand!s}")
+            print(f"Cut Card: {self._cut_card}")
+            points = player.hand.count(self._cut_card)
+            print(f"***They were worth {points} points")
+            player.points += points
 
     def _count_crib(self):
-        self.dealer.points += self._crib.count(self._cut_card)
+        print(f"***{self.dealer!s} has the crib***")
+        print(f"{self._crib!s}")
+        print(f"Cut Card: {self._cut_card}")
+        points = self._crib.count(self._cut_card)
+        print(f"***They were worth {points} points")
+        self.dealer.points += points
 
     def turn(self):
         """
         Does all logic necessary for a turn of Cribbage to take place
         """
+        self._print_scores()
+        print(f"***{self.dealer!s} is the dealer***")
+
+        print("***Shuffling Deck***")
         self._deck.shuffle()
 
+        print("***Dealing Cards***")
         self._deal()
         self._make_players_throw_away()
 
@@ -285,13 +365,15 @@ class CribbageGame:
             except self.GameOver:
                 break
 
+        self._print_scores()
+
         input("Game is over")
 
 
 def main():
     players = [
         CribbagePlayer(1),
-        CribbagePlayer(2),
+        RoboCribbagePlayer(2),
     ]
     CribbageGame(players).play()
 

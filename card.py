@@ -136,7 +136,8 @@ class CribbageHand:
         assert len(self.cards) == 4
 
         cards = self.cards[:]
-        cards.append(cut_card)
+        if cut_card is not None:
+            cards.append(cut_card)
 
         rank_counter = Counter(card.rank for card in cards)
         suit_counter = Counter(card.suit for card in self.cards)
@@ -246,13 +247,20 @@ class CribbagePeggingPile:
             points += 2
 
         # FIND SEQUENCE POINTS
+        sequence_points = 0
+
         for i in range(3, num_cards + 1):
             card_ranks = [
                 # TODO: Find a good way to refactor this
                 CribbageCard.RANKS.index(card.rank)
                 for card in list(self)[num_cards - i::]
             ]
-            print(f"CARD RANKS {card_ranks}")
+            card_ranks.sort()
+            if len(set(card_ranks)) == len(card_ranks):  # No duplicates
+                if card_ranks[-1] - card_ranks[0] == len(card_ranks):
+                    sequence_points = len(card_ranks)
+
+        points += sequence_points
 
         return points
 
