@@ -1,4 +1,1 @@
-gym
-keras
-keras-rl
-tensorflow
+sklearn
